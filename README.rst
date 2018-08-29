@@ -10,7 +10,7 @@ Compatible with XAF versions:
 -----------
 Description
 -----------
-This is a feature for **DevExpress eXpressAppFramework (XAF)** which provides an enhanced Updater deployment tool. It includes configurable parameters that anable removing old version of XAF dlls. It is based on DevExpress.ExpressApp.Updater source code from DevExpress.
+This is a feature for **DevExpress eXpressAppFramework (XAF)** which provides an enhanced Updater deployment tool. It includes configurable parameters that anable removing old version of XAF dlls. It is based on DevExpress.ExpressApp.Updater.exe source code from DevExpress.
 
 **Functionality**
 
@@ -22,7 +22,7 @@ It is possible to set the following parameters in the config:
 
 **IMPORTANT NOTE:**
 
-On newer XAF versions this tool needs to be manually merged with the original DevExpress.ExpressApp.Updater source code.
+On newer XAF versions this tool needs to be manually merged with the original DevExpress.ExpressApp.Updater.exe source code.
 
 **Example Of Use**
 
@@ -31,11 +31,11 @@ https://documentation.devexpress.com/eXpressAppFramework/113239/Deployment/Deplo
 
 **Screenshots**
 
-Solves the issue of deleting old XAF dlls:
+Solves the issue of not deleting old XAF dlls:
 
 .. image:: https://raw.github.com/KrzysztofKielce/xaf-updater-improved/master/Screenshot1.png
 
-with available those config settings:
+with the following config settings available:
 
 .. image:: https://raw.github.com/KrzysztofKielce/xaf-updater-improved/master/Screenshot2.png
 
