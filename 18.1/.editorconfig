@@ -1,0 +1,18 @@
+# 4 space indentation
+[*.cs]
+indent_size = 4
+tabindent_size = 4
+# indent_style = space
+
+
+
+
+# Top-most EditorConfig fileroot = true; 
+# Unix-style newlines[]end_of_line = LF; 
+# 4-column space indentation[.cs]
+# 
+# indent_style = spaceindent_size = 4; 
+# 
+# 2-column tab indentation
+# [*.js]
+# indent_style = tabindent_size = 2
