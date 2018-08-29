@@ -108,7 +108,7 @@ namespace DevExpress.ExpressApp.Updater {
 			List<string> updatedDestinationSubDirectories = new List<string>();
 
 			foreach(string sourceSubDirectory in sourceSubDirectories) {
-				string destinationSubDirectory = destinationDirectory + sourceSubDirectory.Remove(0, sourceDirectory.Length);
+				string destinationSubDirectory = destinationDirectory + new DirectoryInfo(sourceSubDirectory).Name;
 				if(!Directory.Exists(destinationSubDirectory)) {
 					Directory.CreateDirectory(destinationSubDirectory);
 					Tracing.Tracer.LogText("Directory '{0}' was created.", destinationSubDirectory);
