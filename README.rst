@@ -12,7 +12,7 @@ Compatible with XAF versions:
 -----------
 Description
 -----------
-This is a feature for **DevExpress eXpressAppFramework (XAF)** which provides an enhanced Updater deployment tool. It includes configurable parameters that anable removing old version of XAF dlls. It is based on DevExpress.ExpressApp.Updater.exe source code from DevExpress.
+This is a feature for **DevExpress eXpressAppFramework (XAF)** which provides an enhanced Updater deployment tool. It includes configurable parameters that enable removing old version of XAF dlls. It is based on DevExpress.ExpressApp.Updater.exe source code from DevExpress.
 
 **Functionality**
 
