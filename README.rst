@@ -4,8 +4,10 @@ XAF Deployment - Updater tool with configurable removing of old dlls - v1.0
 -----------------------------
 Compatible with XAF versions:
 -----------------------------
-- 17.2.6
-- 18.1.3
+- 17.2.11
+- 18.1.6
+- 18.2.8
+- 19.1.6
 
 -----------
 Description

@@ -1,11 +1,11 @@
-#region Copyright (c) 2000-2018 Developer Express Inc.
+#region Copyright (c) 2000-2019 Developer Express Inc.
 /*
 {*******************************************************************}
 {                                                                   }
 {       Developer Express .NET Component Library                    }
 {       eXpressApp Framework                                        }
 {                                                                   }
-{       Copyright (c) 2000-2018 Developer Express Inc.              }
+{       Copyright (c) 2000-2019 Developer Express Inc.              }
 {       ALL RIGHTS RESERVED                                         }
 {                                                                   }
 {   The entire contents of this file is protected by U.S. and       }
@@ -34,7 +34,7 @@
 {                                                                   }
 {*******************************************************************}
 */
-#endregion Copyright (c) 2000-2018 Developer Express Inc.
+#endregion Copyright (c) 2000-2019 Developer Express Inc.
 
 using System;
 using System.Collections.Generic;

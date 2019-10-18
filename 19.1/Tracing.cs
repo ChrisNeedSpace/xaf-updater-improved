@@ -1,11 +1,11 @@
-﻿#region Copyright (c) 2000-2018 Developer Express Inc.
+﻿#region Copyright (c) 2000-2019 Developer Express Inc.
 /*
 {*******************************************************************}
 {                                                                   }
 {       Developer Express .NET Component Library                    }
 {       eXpressApp Framework                                        }
 {                                                                   }
-{       Copyright (c) 2000-2018 Developer Express Inc.              }
+{       Copyright (c) 2000-2019 Developer Express Inc.              }
 {       ALL RIGHTS RESERVED                                         }
 {                                                                   }
 {   The entire contents of this file is protected by U.S. and       }
@@ -34,7 +34,7 @@
 {                                                                   }
 {*******************************************************************}
 */
-#endregion Copyright (c) 2000-2018 Developer Express Inc.
+#endregion Copyright (c) 2000-2019 Developer Express Inc.
 
 using System;
 using System.Collections.Generic;
@@ -49,12 +49,12 @@ using System.Runtime.Serialization;
 using System.Security;
 using System.Security.Permissions;
 using System.Text;
+using DevExpress.Utils;
 using Microsoft.Win32;
 namespace DevExpress.Persistent.Base {
 	public enum FileLocation { None, ApplicationFolder, CurrentUserApplicationDataFolder }
 	public class NeedContextInformationEventArgs : EventArgs {
 		private string contextInformation = string.Empty;
-		public NeedContextInformationEventArgs() : base() { }
 		public string ContextInformation {
 			get { return contextInformation; }
 			set { contextInformation = value; }
@@ -71,6 +71,18 @@ namespace DevExpress.Persistent.Base {
 	public delegate void Method();
 	[Serializable]
 	public class DelayedException : Exception {
+#if DXCORE3
+		private readonly string targetObjectIdentifier;
+		protected DelayedException(SerializationInfo info, StreamingContext context)
+			: base(info, context) {
+			this.targetObjectIdentifier = info.GetString(nameof(TargetObjectIdentifier));
+		}
+		public override void GetObjectData(SerializationInfo info, StreamingContext context) {
+			Guard.ArgumentNotNull(info, nameof(info));
+			info.AddValue(nameof(TargetObjectIdentifier), targetObjectIdentifier);
+			base.GetObjectData(info, context);
+		}
+#else
 		[Serializable]
 		private struct DelayedExceptionState : ISafeSerializationData {
 			public string TargetObjectIdentifier { get; set; }
@@ -79,36 +91,41 @@ namespace DevExpress.Persistent.Base {
 				exception.state = this;
 			}
 		}
-		private object targetObject;
 		[NonSerialized]
 		private DelayedExceptionState state = new DelayedExceptionState();
+#endif
+		private readonly object targetObject;
 		public DelayedException(Exception exception, object targetObject, string targetObjectIdentifier)
 			: base(FormatMessage(exception.Message, targetObject, targetObjectIdentifier), exception) {
 			this.targetObject = targetObject;
+#if DXCORE3
+			this.targetObjectIdentifier = targetObjectIdentifier;
+#else
 			state.TargetObjectIdentifier = targetObjectIdentifier;
 			SerializeObjectState += (e, eventArgs) => eventArgs.AddSerializedState(state);
+#endif
 		}
 		public static string FormatMessage(string errorMessage, object targetObject, string targetObjectIdentifier) {
-			string additionalMessage = "";
-			if(targetObject != null) {
-				additionalMessage = "'" + targetObject.GetType() + "', ";
-			}
+			string additionalMessage = targetObject != null ? "'" + targetObject.GetType() + "'" : "";
 			if(!string.IsNullOrEmpty(targetObjectIdentifier)) {
+				if(!string.IsNullOrEmpty(additionalMessage)) {
+					additionalMessage += ", ";
+				}
 				additionalMessage += "'" + targetObjectIdentifier + "'";
 			}
-			additionalMessage = additionalMessage.TrimEnd(',', ' ');
-			if(!string.IsNullOrEmpty(additionalMessage)) {
-				return errorMessage + ". " + additionalMessage;
-			}
-			else {
-				return errorMessage;
-			}
+			return !string.IsNullOrEmpty(additionalMessage) ? errorMessage + ". " + additionalMessage : errorMessage;
 		}
 		public object TargetObject {
 			get { return targetObject; }
 		}
 		public string TargetObjectIdentifier {
-			get { return state.TargetObjectIdentifier; }
+			get {
+#if DXCORE3
+				return targetObjectIdentifier;
+#else
+				return state.TargetObjectIdentifier;
+#endif
+			}
 		}
 	}
 	public class SafeExecutor {
@@ -149,9 +166,7 @@ namespace DevExpress.Persistent.Base {
 			Dispose(targetObject, "");
 		}
 		public void Dispose(IDisposable targetObject, string targetObjectIdentifier) {
-			Execute(delegate() {
-				targetObject.Dispose();
-			}, targetObject, targetObjectIdentifier);
+			Execute(() => targetObject.Dispose(), targetObject, targetObjectIdentifier);
 		}
 		public List<DelayedException> Exceptions {
 			get { return exceptionEntries; }
@@ -164,6 +179,18 @@ namespace DevExpress.Persistent.Base {
 	}
 	[Serializable]
 	public class DelayedExceptionList : Exception {
+#if DXCORE3
+		private readonly List<DelayedException> exceptions;
+		protected DelayedExceptionList(SerializationInfo info, StreamingContext context)
+			: base(info, context) {
+			this.exceptions = info.GetValue(nameof(Exceptions), typeof(List<DelayedException>)) as List<DelayedException>;
+		}
+		public override void GetObjectData(SerializationInfo info, StreamingContext context) {
+			Guard.ArgumentNotNull(info, nameof(info));
+			info.AddValue(nameof(Exceptions), exceptions, typeof(List<DelayedException>));
+			base.GetObjectData(info, context);
+		}
+#else
 		[Serializable]
 		private struct DelayedExceptionListState : ISafeSerializationData {
 			public List<DelayedException> Exceptions { get; set; }
@@ -174,29 +201,27 @@ namespace DevExpress.Persistent.Base {
 		}
 		[NonSerialized]
 		private DelayedExceptionListState state = new DelayedExceptionListState();
+#endif
 		public static string FormatMessage(string errorMessage, object targetObject, string targetObjectId) {
-			string additionalMessage = "";
-			if(targetObject != null) {
-				additionalMessage = "'" + targetObject.GetType() + "', ";
-			}
-			if(!string.IsNullOrEmpty(targetObjectId)) {
-				additionalMessage += "'" + targetObjectId + "'";
-			}
-			additionalMessage = additionalMessage.TrimEnd(',', ' ');
-			if(!string.IsNullOrEmpty(additionalMessage)) {
-				return errorMessage + ". " + additionalMessage;
-			}
-			else {
-				return errorMessage;
-			}
+			return DelayedException.FormatMessage(errorMessage, targetObject, targetObjectId);
 		}
 		public DelayedExceptionList(List<DelayedException> exceptions, object targetObject, string targetObjectId)
 			: base(FormatMessage(exceptions[0].Message, targetObject, targetObjectId), exceptions[0]) {
+#if DXCORE3
+			this.exceptions = exceptions;
+#else
 			state.Exceptions = exceptions;
 			SerializeObjectState += (exception, eventArgs) => eventArgs.AddSerializedState(state);
+#endif
 		}
 		public List<DelayedException> Exceptions {
-			get { return state.Exceptions; }
+			get {
+#if DXCORE3
+				return exceptions;
+#else
+				return state.Exceptions;
+#endif
+			}
 		}
 	}
 	public static class PathHelper {
@@ -228,11 +253,12 @@ namespace DevExpress.Persistent.Base {
 		private static bool traceLockedSections = false;
 		private static string outputDirectory;
 		private static FileLocation? fileLocation;
+		private static readonly object[] EmptyArgs = new object[0];
 		private TraceSwitch verbositySwitch;
 		private List<string> cache = new List<string>();
 		private int lockCount;
 		private int lastEntriesMaxCount = lastEntriesMaxCountDefault;
-		private List<string> lastEntries = new List<string>(lastEntriesMaxCountDefault);
+		private Queue<string> lastEntries = new Queue<string>(lastEntriesMaxCountDefault);
 		private readonly object internalLockObject = new object();
 		protected static string SectionDelim = new string('=', 80);
 		protected static string SubSectionDelim = new string('-', 80);
@@ -255,16 +281,8 @@ namespace DevExpress.Persistent.Base {
 		}
 		private void FlushCache() {
 			if(cache.Count > 0) {
-				if(HasUnmanagedCodePermission)
-				{
-					if(listener != null) {
-						listener.WriteLine(string.Join("\r\n", cache.ToArray()));
-						listener.Close();
-					}
-					else {
-						Trace.WriteLine(string.Join("\r\n", cache.ToArray()));
-					}
-				}
+				string message = string.Join("\r\n", cache);
+				WriteLine(message, null);
 				cache.Clear();
 			}
 		}
@@ -277,9 +295,10 @@ namespace DevExpress.Persistent.Base {
 			return args.Result;
 		}
 		private void LogHeader() {
-			WriteLineIf(verbositySwitch.Level != TraceLevel.Off, SectionDelim);
-			WriteLineIfFormat(verbositySwitch.Level != TraceLevel.Off, "Trace Log for {0} is started", AppDomain.CurrentDomain.FriendlyName);
-			WriteLineIf(verbositySwitch.Level != TraceLevel.Off, SectionDelim);
+			bool condition = verbositySwitch.Level != TraceLevel.Off;
+			WriteLineIf(condition, SectionDelim);
+			WriteLineIf(condition, string.Format("Trace Log for {0} is started", AppDomain.CurrentDomain.FriendlyName));
+			WriteLineIf(condition, SectionDelim);
 		}
 		private string EnumerateNetFrameworkVersions() {
 			try {
@@ -473,81 +492,87 @@ namespace DevExpress.Persistent.Base {
 				tracer = null;
 			}
 		}
-		private void WriteLineIfFormat(bool condition, string textFormat, params object[] args) {
-			if(args.Length == 0) { 
-				WriteLineIf(condition, textFormat);
-			}
-			else {
-				WriteLineIf(condition, string.Format(textFormat, args));
-			}
+		private void WriteLineIfFormat(bool condition, string textFormat, object[] args, bool flushCache = false) {
+			string text = args.Length == 0 ? textFormat : string.Format(textFormat, args); 
+			WriteLineIf(condition, text, flushCache);
 		}
-		private void WriteLineIf(bool condition, string text, TraceEventType traceEventType = TraceEventType.Information, Exception exception = null) {
-			NeedContextInformationEventArgs args = new NeedContextInformationEventArgs();
-			RaiseNeedContextInformation(args);
-			WriteLineIf(condition, args.ContextInformation, text, traceEventType, exception);
-		}
-		private void WriteLineIf(bool condition, string contextInfo, string text, TraceEventType traceEventType, Exception exception) {
+		private void WriteLineIf(bool condition, string text, bool flushCache = false, Exception exception = null) {
 			lock(internalLockObject) {
-				string valueToCash = !string.IsNullOrEmpty(text) ? (text.Length >= 100 ? text.Substring(0, 100) : text) : text;
-				string header = GetDateTimeStamp() + FieldDelimiter + contextInfo + (string.IsNullOrEmpty(contextInfo) ? "" : FieldDelimiter.ToString());
+				string traceText = null;
 				if(lastEntriesMaxCount > 0) {
-					lastEntries.Add(header + valueToCash);
-					if((lastEntriesMaxCount > 0) && (lastEntries.Count > lastEntriesMaxCount)) {
-						lastEntries.RemoveRange(0, lastEntries.Count - lastEntriesMaxCount);
+					if(lastEntries.Count == lastEntriesMaxCount) {
+						lastEntries.Dequeue();
 					}
+					traceText = CreateTraceText(text);
+					string valueToCash = traceText.Length >= 150 ? traceText.Substring(0, 150) : traceText;
+					lastEntries.Enqueue(valueToCash);
 				}
 				if(condition) {
-					if(lockCount == 0) {
-						if(listener != null) {
-							listener.WriteLine(header + text);
-							listener.Close();
-						}
-						else {
-							if(HasUnmanagedCodePermission) {
-								if(traceEventType == TraceEventType.Error && exception != null) {
-									string resultText = header + text;
-									resultText = resultText.Replace("{", "{{").Replace("}", "}}");
-									Trace.TraceError(resultText, exception);
-								}
-								else {
-									Trace.WriteLine(header + text);
-								}
-							}
-						}
+					if(traceText == null) {
+						traceText = CreateTraceText(text);
+					}
+					if(flushCache) {
+						FlushCache();
+						WriteLine(traceText, exception);
+					}
+					else if(lockCount == 0) {
+						WriteLine(traceText, exception);
 					}
 					else {
-						valueToCash = !string.IsNullOrEmpty(text) ? (text.Length >= 5000 ? text.Substring(0, 5000) : text) : text;
-						cache.Add(header + valueToCash);
+						cache.Add(traceText);
 					}
 				}
 			}
 		}
-		private string ValueToString(object value, List<object> list) {
-			string result = "<not specified>";
-			if(list.IndexOf(value) == -1) {
-				list.Add(value);
-				if(value != null) {
-					Array array = value as Array;
-					if(array != null) {
-						if(array.Length > 0) {
-							List<string> items = new List<string>();
-							items.Add(string.Empty);
-							foreach(object item in array) {
-								items.Add("\t\t" + ValueToString(item, list));
-							}
-							result = string.Join("\r\n", items.ToArray());
-						}
+		private string CreateTraceText(string text) {
+			string traceText = GetDateTimeStamp() + FieldDelimiter.ToString();
+			NeedContextInformationEventArgs args = new NeedContextInformationEventArgs();
+			RaiseNeedContextInformation(args);
+			if(!string.IsNullOrEmpty(args.ContextInformation)) {
+				traceText += args.ContextInformation + FieldDelimiter.ToString();
+			}
+			return traceText + text;
+		}
+		private void WriteLine(string message, Exception exception) {
+			if(listener != null) {
+				listener.WriteLine(message);
+				listener.Close();
+			}
+			else if(HasUnmanagedCodePermission) {
+				if(exception != null) {
+					string resultText = message.Replace("{", "{{").Replace("}", "}}");
+					Trace.TraceError(resultText, exception);
+				}
+				else {
+					Trace.WriteLine(message);
+				}
+			}
+		}
+		private static string ArrayToString(Array array, HashSet<object> inProcess) {
+			if(array.Length == 0) {
+				return "<not specified>"; 
+			}
+			string result = "";
+			foreach(object item in array) {
+				result += "\r\n\t\t";
+				if(item is Array) {
+					if(item == array || inProcess.Contains(item)) {
+						result += "<recursive reference>";
 					}
 					else {
-						result = value.ToString();
+						inProcess.Add(array);
+						result += ArrayToString((Array)item, inProcess);
+						inProcess.Remove(array);
 					}
 				}
-				list.Remove(value);
-			}
-			else {
-				result = "<recursive reference>";
+				else {
+					result += ObjectToString(item);
+				}
 			}
 			return result;
+		}
+		private static string ObjectToString(object value) {
+			return value == null ? "<not specified>" : value.ToString();
 		}
 		private void RaiseNeedContextInformation(NeedContextInformationEventArgs args) {
 			if(NeedContextInformation != null) {
@@ -645,35 +670,41 @@ namespace DevExpress.Persistent.Base {
 		}
 		[Browsable(false), EditorBrowsable(EditorBrowsableState.Never)]
 		public string ValueToString(object value) {
-			return ValueToString(value, new List<object>());
+			if(value is Array) {
+				return ArrayToString((Array)value, new HashSet<object>());
+			}
+			return ObjectToString(value);
 		}
 		public string FormatExceptionReport(Exception exception) {
 			return FormatExceptionReportDefault(exception);
 		}
+		public void LogError(string text) {
+			LogError(text, EmptyArgs);
+		}
 		public virtual void LogError(string text, params object[] args) {
-			WriteLineIfFormat(verbositySwitch.TraceError, text, args);
-			lock(internalLockObject) {
-				FlushCache();
-			}
+			WriteLineIfFormat(verbositySwitch.TraceError, text, args, true);
 		}
 		public virtual void LogError(Exception exception) {
-			WriteLineIf(verbositySwitch.TraceError, FormatExceptionReport(exception), TraceEventType.Error, exception);
-			lock(internalLockObject) {
-				FlushCache();
-			}
+			WriteLineIf(verbositySwitch.TraceError, FormatExceptionReport(exception), true, exception);
 		}
 		[Browsable(false), EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual void LogVerboseError(Exception exception) {
-			WriteLineIf(verbositySwitch.TraceVerbose, FormatExceptionReport(exception), TraceEventType.Error, exception);
-			lock(internalLockObject) {
-				FlushCache();
-			}
+			WriteLineIf(verbositySwitch.TraceVerbose, FormatExceptionReport(exception), true, exception);
+		}
+		public void LogWarning(string text) {
+			LogWarning(text, EmptyArgs);
 		}
 		public virtual void LogWarning(string text, params object[] args) {
 			WriteLineIfFormat(verbositySwitch.TraceWarning, text, args);
 		}
+		public void LogText(string text) {
+			LogText(text, EmptyArgs);
+		}
 		public virtual void LogText(string text, params object[] args) {
 			WriteLineIfFormat(verbositySwitch.TraceInfo, text, args);
+		}
+		public void LogVerboseText(string text) {
+			LogVerboseText(text, EmptyArgs);
 		}
 		public virtual void LogVerboseText(string text, params object[] args) {
 			WriteLineIfFormat(verbositySwitch.TraceVerbose, text, args);
@@ -689,16 +720,17 @@ namespace DevExpress.Persistent.Base {
 		}
 		[Browsable(false), EditorBrowsable(EditorBrowsableState.Never)]
 		public string GetMessageByValue(string valueName, object objectValue, bool useEmptyHeader) {
-			return useEmptyHeader ? (Tracing.EmptyHeader + GetMessageByValueCore(valueName, objectValue) + Environment.NewLine) : (GetMessageByValueCore(valueName, objectValue) + Environment.NewLine);
+			string prefix = useEmptyHeader ? Tracing.EmptyHeader : string.Empty;
+			return prefix + GetMessageByValueCore(valueName, objectValue) + Environment.NewLine;
 		}
-		private string GetMessageByValueCore(string valueName, object objectValue) {
+		protected virtual string GetMessageByValueCore(string valueName, object objectValue) {
 			return string.Format("\t{0}: {1}", valueName, ValueToString(objectValue));
 		}
 		public virtual void LogLoadedAssemblies() {
 			if(verbositySwitch.TraceInfo) {
 				List<string> report = new List<string>();
 				FormatLoadedAssemblies(report);
-				LogText(string.Join("\r\n", report.ToArray()));
+				LogText(string.Join("\r\n", report));
 			}
 		}
 		public void LogSeparator(String comment) {
@@ -729,7 +761,7 @@ namespace DevExpress.Persistent.Base {
 			lock(internalLockObject) {
 				if(lockCount > 0) {
 					lockCount--;
-					if(lockCount == 0 && cache.Count > 0) {
+					if(lockCount == 0) {
 						FlushCache();
 					}
 				}
@@ -740,22 +772,20 @@ namespace DevExpress.Persistent.Base {
 			set {
 				lock(internalLockObject) {
 					lastEntriesMaxCount = value;
-					if(lastEntries.Capacity < lastEntriesMaxCount) {
-						lastEntries.Capacity = lastEntriesMaxCount;
-					}
+					lastEntries = new Queue<string>(lastEntriesMaxCount > 0 ? lastEntriesMaxCount : 0);
 				}
 			}
 		}
 		public ReadOnlyCollection<string> LastEntries {
 			get {
 				lock(internalLockObject) {
-					return lastEntries.AsReadOnly();
+					return new ReadOnlyCollection<string>(lastEntries.ToArray());
 				}
 			}
 		}
 		public string GetLastEntriesAsString() {
 			lock(internalLockObject) {
-				return string.Join("\n", lastEntries.ToArray());
+				return string.Join("\n", lastEntries);
 			}
 		}
 		public void Dispose() {
@@ -767,9 +797,6 @@ namespace DevExpress.Persistent.Base {
 						listener.Dispose();
 					}
 				}
-#if DebugTest
-				CreateCustomTracer = null;
-#endif
 			}
 			catch {
 			}
@@ -799,7 +826,7 @@ namespace DevExpress.Persistent.Base {
 			}
 		}
 		public static event EventHandler<CreateCustomTracerEventArgs> CreateCustomTracer;
-		#region TODO XAFCore: duplicated with the ReflectionHelper.HasUnmanagedCodePermission/GetAssemblyVersion because this file is linked to the DevExpress.ExpressApp.Updater project
+#region TODO XAFCore: duplicated with the ReflectionHelper.HasUnmanagedCodePermission/GetAssemblyVersion because this file is linked to the DevExpress.ExpressApp.Updater project
 		private static bool? hasUnmanagedCodePermission = null;
 		[SecuritySafeCritical]
 		private static bool GetDomainPermission(SecurityPermissionFlag flag) {
@@ -830,24 +857,12 @@ namespace DevExpress.Persistent.Base {
 				return hasUnmanagedCodePermission.Value;
 			}
 		}
-		#endregion
-		#region Obsolete 16.2
+#endregion
+#region Obsolete 16.2
 		[Obsolete("Use the 'GetSubSeparator' method instead."), Browsable(false), EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual String GetSeparator(String comment) {
 			return SubSectionDelim + Environment.NewLine + Tracing.EmptyHeader + comment + Environment.NewLine;
 		}
-		#endregion
-#if DebugTest
-		public static string DebugTest_DefaultLevel {
-			get { return defaultLevel; }
-		}
-		public static void ClearFileLocation(){
-			fileLocation = null;
-			outputDirectory = null;
-		}
-		public void DebugTest_SetVerbositySwitch(TraceSwitch verbositySwitch) {
-			this.verbositySwitch = verbositySwitch;
-		}		
-#endif
+#endregion
 	}
 }
