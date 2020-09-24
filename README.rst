@@ -8,6 +8,7 @@ Compatible with XAF versions:
 - 18.1.6
 - 18.2.8
 - 19.1.6
+- 20.1.7
 
 -----------
 Description
