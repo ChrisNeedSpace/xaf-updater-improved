@@ -8,6 +8,7 @@ Compatible with XAF versions:
 - 18.1.6
 - 18.2.8
 - 19.1.6
+- 19.2.5
 - 20.1.7
 
 -----------
@@ -36,11 +37,11 @@ https://documentation.devexpress.com/eXpressAppFramework/113239/Deployment/Deplo
 
 Solves the issue of not deleting old XAF dlls:
 
-.. image:: https://raw.github.com/KrzysztofKielce/xaf-updater-improved/master/Screenshot1.png
+.. image:: https://raw.github.com/ChrisNeedSpace/xaf-updater-improved/master/Screenshot1.png
 
 with the following config settings available:
 
-.. image:: https://raw.github.com/KrzysztofKielce/xaf-updater-improved/master/Screenshot2.png
+.. image:: https://raw.github.com/ChrisNeedSpace/xaf-updater-improved/master/Screenshot2.png
 
 ------------
 Installation
@@ -50,7 +51,7 @@ Installation
 
    - To download using Source Tree, install and open Source Tree, add new tab, click Clone, then enter the repository url:
 
-     ``https://github.com/KrzysztofKielce/xaf-updater-improved.git``
+     ``https://github.com/ChrisNeedSpace/xaf-updater-improved.git``
    - To download directly, go to the `project page`_ and click **Download**
 
 #. Open XAF Win project (or create one) and follow the deployment instructions from https://documentation.devexpress.com/eXpressAppFramework/113239/Deployment/Deployment-Tutorial/Application-Update
@@ -59,7 +60,7 @@ Installation
 .. _XAF: http://go.devexpress.com/DevExpressDownload_UniversalTrial.aspx
 .. _Source Tree: https://www.sourcetreeapp.com/
 .. _github:
-.. _project page: https://github.com/KrzysztofKielce/xaf-updater-improved
+.. _project page: https://github.com/ChrisNeedSpace/xaf-updater-improved
 
 
 ----------
