@@ -78,6 +78,7 @@ namespace DevExpress.ExpressApp.Updater {
                 if (UpdaterHelper.IsFolderIgnored(destinationDirectory))
                     return;
                 List<string> updatedDestinationFiles = new List<string>();
+				Application.DoEvents();
 
 				Tracing.Tracer.LogText("CopyNewVersion from '{0}' to '{1}'", sourceDirectory, destinationDirectory);
 				string[] sourceFiles = Directory.GetFiles(sourceDirectory, "*.*");
@@ -88,13 +89,26 @@ namespace DevExpress.ExpressApp.Updater {
 						if(File.Exists(destinationFileName)) {
 							File.SetAttributes(destinationFileName, FileAttributes.Normal);
 						}
+						
+						// Custom code (do not copy unchanged files)
+						Application.DoEvents();
+						DateTime sourceFileModified = File.GetLastWriteTime(sourceFileName);
+						DateTime destFileModified = DateTime.MinValue;
+						if (File.Exists(destinationFileName))
+							destFileModified = File.GetLastWriteTime(destinationFileName);
+						if (sourceFileModified == destFileModified)
+						{
+							form.SetProgressPosition();
+							updatedDestinationFiles.Add(destinationFileName);
+							continue;
+						}
+						
 						File.Copy(sourceFileName, destinationFileName, true);
+						Tracing.Tracer.LogText("The \"{0}\" file was copied to \"{1}\".", sourceFileName, destinationFileName);
+						form.SetProgressPosition();
 
 						// Custom code
 						updatedDestinationFiles.Add(destinationFileName);
-
-						Tracing.Tracer.LogText("The \"{0}\" file was copied to \"{1}\".", sourceFileName, destinationFileName);
-						form.SetProgressPosition();
 					}
 				}
 
